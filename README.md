@@ -1,8 +1,9 @@
 # ros_deep_learning (added improvements to original repo dusty-nv/ros_deep_learning)
-
+- live camera detection
 - CV_Bridge image published
 - Bounding box feature added
 - Class name drawn to published image
+- Simpler launch file added
 
 
 This repo contains deep learning inference nodes for ROS with support for Jetson Nano/TX1/TX2/Xavier and TensorRT.
