@@ -1,4 +1,10 @@
-# ros_deep_learning
+# ros_deep_learning (added improvements to original repo dusty-nv/ros_deep_learning)
+
+- CV_Bridge image published
+- Bounding box feature added
+- Class name drawn to published image
+
+
 This repo contains deep learning inference nodes for ROS with support for Jetson Nano/TX1/TX2/Xavier and TensorRT.
 
 The nodes use the image recognition, object detection, and semantic segmentation DNN's from the [`jetson-inference`](https://github.com/dusty-nv/jetson-inference) library and NVIDIA [Hello AI World](https://developer.nvidia.com/embedded/twodaystoademo) tutorial, which come with several built-in pretrained networks for classification, detection, and segmentation and the ability to load customized user-trained models.
