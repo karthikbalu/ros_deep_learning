@@ -132,6 +132,12 @@ See [this table](https://github.com/dusty-nv/jetson-inference/blob/master/docs/d
 $ rosrun image_publisher image_publisher __name:=image_publisher ~/jetson-inference/data/images/dog_0.jpg
 $ rosrun ros_deep_learning detectnet /detectnet/image_in:=/image_publisher/image_raw _model_name:=coco-dog
 ```
+### Live Camera Detection
+Just run the below launch file to start publishing camera stream to ros and detection results 
+Default model used - "ssd-mobilenet-v2" which can be changed from launch file
+```
+roslaunch ros_deep_learning cameradetection.launch
+```
 
 To inspect the [`vision_msgs/Detection2DArray`](http://docs.ros.org/melodic/api/vision_msgs/html/msg/Detection2DArray.html) message output of the node, subscribe to the `detectnet/detections` topic:
 
