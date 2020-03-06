@@ -25,6 +25,9 @@
 #include <sensor_msgs/Image.h>
 #include <vision_msgs/Detection2DArray.h>
 #include <vision_msgs/VisionInfo.h>
+#include <image_transport/image_transport.h>
+
+#include <sensor_msgs/image_encodings.h>
 
 #include <jetson-inference/detectNet.h>
 #include <jetson-utils/cudaMappedMemory.h>
@@ -32,15 +35,22 @@
 #include "image_converter.h"
 
 #include <unordered_map>
+#include <cv_bridge/cv_bridge.h>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 // globals
 detectNet* 	 net = NULL;
 imageConverter* cvt = NULL;
 
+
+image_transport::Publisher image_pub;
+
 ros::Publisher* detection_pub = NULL;
 
 vision_msgs::VisionInfo info_msg;
+
 
 
 // callback triggered when a new subscriber connected to vision_info topic
@@ -54,6 +64,17 @@ void info_connect( const ros::SingleSubscriberPublisher& pub )
 // input image subscriber callback
 void img_callback( const sensor_msgs::ImageConstPtr& input )
 {
+	 cv_bridge::CvImagePtr cv_ptr;
+    try
+    {
+      cv_ptr = cv_bridge::toCvCopy(input, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+      return;
+    }
+
 	// convert the image to reside on GPU
 	if( !cvt || !cvt->Convert(input) )
 	{
@@ -80,6 +101,12 @@ void img_callback( const sensor_msgs::ImageConstPtr& input )
 		
 		// create a detection for each bounding box
 		vision_msgs::Detection2DArray msg;
+		std_msgs::Header header; // empty header
+		cv_bridge::CvImage img_bridge;
+		sensor_msgs::Image img_msg;
+
+		cv::Rect r;
+		cv::Point textloc;
 
 		for( int n=0; n < numDetections; n++ )
 		{
@@ -93,7 +120,10 @@ void img_callback( const sensor_msgs::ImageConstPtr& input )
 
 			detMsg.bbox.size_x = det->Width();
 			detMsg.bbox.size_y = det->Height();
+
+			r = cv::Rect(det->Left, det->Top, det->Width(), det->Height());
 			
+
 			float cx, cy;
 			det->Center(&cx, &cy);
 
@@ -101,6 +131,37 @@ void img_callback( const sensor_msgs::ImageConstPtr& input )
 			detMsg.bbox.center.y = cy;
 
 			detMsg.bbox.center.theta = 0.0f;		// TODO optionally output object image
+
+
+			textloc = cv::Point(cx, det->Top);
+
+//			int x1 = det->Left;
+//			int y1 = det->Top;
+			//int width =  det->Width();
+			//int height =  det->Height();
+			
+			cv::rectangle(cv_ptr->image, r, cv::Scalar(0, 255, 0));
+			cv::putText(cv_ptr->image, net->GetClassDesc(det->ClassID), textloc, cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(200,200,250), 1);
+
+/*
+			cv::Point center( cx + det->Width()*0.5, cy + det->Height()*0.5 );
+            cv::ellipse(cv_ptr->image, center, cv::Size( det->Width()*0.5, det->Height()*0.5), 0, 0, 360, cv::Scalar( 255, 0, 255 ), 4, 8, 0 );
+*/
+   		    // draw a green line(CW) on the overlay copy
+			// cv::line(cv_ptr->image, cv::Point(det->Left,det->Top), cv::Point(det->Right,det->Top),cv::Scalar(0, 255, 0),2);
+			//cv::line(cv_ptr->image, cv::Point(bb[2],bb[1]), cv::Point(bb[2],bb[3]),cv::Scalar(0, 255, 0),2);
+			//cv::line(cv_ptr->image, cv::Point(bb[2],bb[3]), cv::Point(bb[0],bb[3]),cv::Scalar(0, 255, 0),2);
+			//cv::line(cv_ptr->image, cv::Point(bb[0],bb[3]), cv::Point(bb[0],bb[1]),cv::Scalar(0, 255, 0),2);
+
+
+			header.seq = n; // user defined counter
+			header.stamp = ros::Time::now(); // time
+			img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, cv_ptr->image);
+			img_bridge.toImageMsg(img_msg); // from cv_bridge to sensor_msgs::Image
+			//pub_img.publish(img_msg); 
+			detMsg.source_img = img_msg;//cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr->image).toImageMsg();
+
+
 
 			// create classification hypothesis
 			vision_msgs::ObjectHypothesisWithPose hyp;
@@ -110,10 +171,13 @@ void img_callback( const sensor_msgs::ImageConstPtr& input )
 
 			detMsg.results.push_back(hyp);
 			msg.detections.push_back(detMsg);
+
+			
 		}
 
 		// publish the detection message
 		detection_pub->publish(msg);
+		image_pub.publish(cv_ptr->toImageMsg());
 	}
 }
 
@@ -125,6 +189,8 @@ int main(int argc, char **argv)
  
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh("~");
+	image_transport::ImageTransport it(nh);
+	
 
 	/*
 	 * retrieve parameters
@@ -239,7 +305,8 @@ int main(int argc, char **argv)
 	// the vision info topic only publishes upon a new connection
 	ros::Publisher info_pub = private_nh.advertise<vision_msgs::VisionInfo>("vision_info", 1, (ros::SubscriberStatusCallback)info_connect);
 
-
+    
+	image_pub = it.advertise("/image_converter/output_video", 1);
 	/*
 	 * subscribe to image topic
 	 */
@@ -257,4 +324,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
