@@ -2,6 +2,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(ros_deep_learning)
 
+find_package( OpenCV REQUIRED )
+
+
 # locate dependencies
 find_package(catkin REQUIRED COMPONENTS
   image_transport
@@ -9,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   vision_msgs
   std_msgs
+  cv_bridge
 )
 
 find_package(jetson-utils REQUIRED)
@@ -31,7 +35,9 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${CUDA_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
+include_directories(include ${catkin_INCLUDE_DIRS})
 
 # enable c++11 (TensorRT requirement)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -50,10 +56,13 @@ target_link_libraries(segnet ${catkin_LIBRARIES} jetson-inference)
 
 # the library we are going to compile (has all of the nodelets in it)
 add_library(ros_deep_learning_nodelets src/nodelet_imagenet.cpp src/image_converter.cpp)
-target_link_libraries(ros_deep_learning_nodelets ${catkin_LIBRARIES} jetson-inference)
+target_link_libraries(ros_deep_learning_nodelets ${catkin_LIBRARIES} jetson-inference ${OpenCV_LIBS})
 
 
 #if(catkin_EXPORTED_LIBRARIES)
 #    add_dependencies(ros_deep_learning_nodelets ${catkin_EXPORTED_LIBRARIES})
 #endif()
 
+#add_dependencies(vision_msgs ${PROJECT_NAME}_gencfg)
+#add_dependencies(vision_msgs ${catkin_EXPORTED_TARGETS})
+add_dependencies(vision_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
