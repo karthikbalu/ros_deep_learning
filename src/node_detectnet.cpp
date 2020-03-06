@@ -130,36 +130,20 @@ void img_callback( const sensor_msgs::ImageConstPtr& input )
 			detMsg.bbox.center.x = cx;
 			detMsg.bbox.center.y = cy;
 
-			detMsg.bbox.center.theta = 0.0f;		// TODO optionally output object image
+			detMsg.bbox.center.theta = 0.0f;		
 
 
 			textloc = cv::Point(cx, det->Top);
 
-//			int x1 = det->Left;
-//			int y1 = det->Top;
-			//int width =  det->Width();
-			//int height =  det->Height();
-			
 			cv::rectangle(cv_ptr->image, r, cv::Scalar(0, 255, 0));
-			cv::putText(cv_ptr->image, net->GetClassDesc(det->ClassID), textloc, cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(200,200,250), 1);
-
-/*
-			cv::Point center( cx + det->Width()*0.5, cy + det->Height()*0.5 );
-            cv::ellipse(cv_ptr->image, center, cv::Size( det->Width()*0.5, det->Height()*0.5), 0, 0, 360, cv::Scalar( 255, 0, 255 ), 4, 8, 0 );
-*/
-   		    // draw a green line(CW) on the overlay copy
-			// cv::line(cv_ptr->image, cv::Point(det->Left,det->Top), cv::Point(det->Right,det->Top),cv::Scalar(0, 255, 0),2);
-			//cv::line(cv_ptr->image, cv::Point(bb[2],bb[1]), cv::Point(bb[2],bb[3]),cv::Scalar(0, 255, 0),2);
-			//cv::line(cv_ptr->image, cv::Point(bb[2],bb[3]), cv::Point(bb[0],bb[3]),cv::Scalar(0, 255, 0),2);
-			//cv::line(cv_ptr->image, cv::Point(bb[0],bb[3]), cv::Point(bb[0],bb[1]),cv::Scalar(0, 255, 0),2);
+			cv::putText(cv_ptr->image, net->GetClassDesc(det->ClassID), textloc, cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0,255,0), 1);
 
 
 			header.seq = n; // user defined counter
 			header.stamp = ros::Time::now(); // time
 			img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, cv_ptr->image);
-			img_bridge.toImageMsg(img_msg); // from cv_bridge to sensor_msgs::Image
-			//pub_img.publish(img_msg); 
-			detMsg.source_img = img_msg;//cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_ptr->image).toImageMsg();
+			img_bridge.toImageMsg(img_msg); 
+			detMsg.source_img = img_msg;
 
 
 
