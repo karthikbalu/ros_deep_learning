@@ -1,0 +1,7 @@
+<launch>
+  	<node name="publishcamera" pkg="ros_deep_learning" type="publishcamera.py" />
+    <node name="detectnet"  pkg="ros_deep_learning" type="detectnet" output="screen">
+        <remap from="/detectnet/image_in" to="/input/image_raw"/>
+        <param name="_model_name" value="ssd-mobilenet-v2" />
+    </node>
+</launch>
